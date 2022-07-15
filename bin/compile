@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# bin/compile <build-dir> <cache-dir> <env-dir>
+
+# fail fast
+set -e
+
+BPLOG_PREFIX="buildpack.java"
+
+BP_DIR=$(cd $(dirname $0)/..; pwd) # absolute path
+BUILD_DIR=$1
+CACHE_DIR=$2
+ENV_DIR=$3
+
+source $BP_DIR/lib/common.sh
+source <(curl -s --retry 3 -L $BUILDPACK_STDLIB_URL)
+
+export_env $ENV_DIR "." "JAVA_OPTS|JAVA_TOOL_OPTIONS"
+
+install_jdk "${BUILD_DIR}" "${CACHE_DIR}"
+
+indent() {
+  sed -u 's/^/       /'
+}
+
+VERSION="6.2.4"
+INSTALL_DIR="$BUILD_DIR/.heroku/vendor/elasticsearch"
+PROFILE_PATH="$BUILD_DIR/.profile.d/elasticsearch.sh"
+
+mkdir -p $INSTALL_DIR
+mkdir -p $(dirname $PROFILE_PATH)
+mkdir -p $CACHE_DIR
+
+echo "Search in cache directory $CACHE_DIR/elasticsearch-$VERSION" | indent
+
+if [ ! -d $CACHE_DIR/elasticsearch-$VERSION ]; then
+	echo "Fetching and installing elasticsearch" | indent
+	cd $CACHE_DIR
+	curl -sOL "https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-$VERSION.tar.gz"
+	tar zxf "elasticsearch-$VERSION.tar.gz"
+	cd "elasticsearch-$VERSION"
+	cp -r $CACHE_DIR/elasticsearch-$VERSION/* $INSTALL_DIR/
+else
+	echo "Installing elasticsearch from cache" | indent
+	cp -r $CACHE_DIR/elasticsearch-$VERSION/*  $INSTALL_DIR/
+fi
+
+cat <<EOF >> $PROFILE_PATH
+export PATH=/app/.heroku/vendor/elasticsearch/bin:\$PATH
+export ELASTICSEARCH_URL=localhost:9200
+
+source $BUILD_DIR/.profile.d/jvmcommon.sh
+
+if [ ! -f /tmp/es.pid ]; then
+  echo "Starting ElasticSearch..."
+  elasticsearch -d -p /tmp/es.pid
+fi
+EOF
+
+echo "Done" | indent
