@@ -47,7 +47,7 @@ fi
 cat <<EOF >> $PROFILE_PATH
 export PATH=/app/.heroku/vendor/elasticsearch/bin:\$PATH
 export ELASTICSEARCH_URL=localhost:9200
-export ES_JAVA_OPTS="-Xmx100m"
+export ES_JAVA_OPTS="-Xms80m -Xmx100m"
 
 source $BUILD_DIR/.profile.d/jvmcommon.sh
 
