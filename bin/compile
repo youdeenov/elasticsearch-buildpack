@@ -52,7 +52,7 @@ source $BUILD_DIR/.profile.d/jvmcommon.sh
 
 if [ ! -f /tmp/es.pid ]; then
   echo "Starting ElasticSearch..."
-  elasticsearch -d -p /tmp/es.pid -Xmx100m
+  elasticsearch -d -p /tmp/es.pid ES_JAVA_OPTS="-Xmx100m"
 fi
 EOF
 
